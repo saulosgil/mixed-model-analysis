@@ -6,7 +6,7 @@ library(emmeans)
 
 # Criando grupos ------------------------------------------------------------------------------
 
-set.seed(123)
+set.seed(1234)
 
 x <- data.frame(
   sujeito = as.numeric(c(1:20)),
@@ -28,7 +28,22 @@ data <- rbind(x,y)
 
 skimr::skim(data)
 
+# Criando um csv para testar no SAS -----------------------------------------------------------
+
+write_excel_csv(x = data,file = "data.csv",col_names = FALSE,quote = "all")
+
 # Visualização exploratória -------------------------------------------------------------------
+
+# média e SD <- grupo*tempo
+
+data |>
+  group_by(grupo, tempo) |>
+  summarise(mean = mean(imc),
+            DP = sd(imc))
+
+# obs -> igual ao proc means do SAS
+
+# Gráfico
 
 data |>
   ggplot(mapping = aes(x=grupo,
@@ -51,9 +66,9 @@ coefs <- data.frame(coef(summary(datalemr)))
 
 # P-value baseado em uma distribuição normal
 
-coefs$p.value <- 2 * round((1 - pnorm(abs(coefs$t.value))),digits = 8)
+coefs$p.value <- 2 * (1 - pnorm(abs(coefs$t.value)))
 
-coefs
+round(coefs,digits = 8)
 
 # Coeficientes utilizando a função summary
 
@@ -68,6 +83,7 @@ emmeans::emmeans(datalemr,
                  specs = pairwise ~ grupo*tempo,
                  adjust = "Bonferroni")
 
+# obs. igual ao Differences of Least Squares Means so SAS
 
 # Ajuste de Tukey
 
@@ -75,8 +91,5 @@ emmeans::emmeans(datalemr,
                  ddf = "Kenward_Roger",
                  specs = pairwise ~ grupo*tempo,
                  adjust = "Tukey")
-
-
-lmerTest::ls_means(model = datalemr)
 
 
