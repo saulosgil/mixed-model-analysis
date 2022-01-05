@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(lme4)
+library(lmerTest)
 library(emmeans)
 
 # Criando grupos ------------------------------------------------------------------------------
@@ -12,7 +13,7 @@ x <- data.frame(
   sujeito = as.numeric(c(1:20)),
   grupo = as.factor(c("ctrl", "trt")),
   tempo = as.factor(c("Baseline", "pos")),
-  imc = as.numeric(c(runif(n = 20, min = 18, max = 60)))
+  vardep = as.numeric(c(runif(n = 20, min = 18, max = 60)))
 )
 
 set.seed(123)
@@ -21,16 +22,18 @@ y <- data.frame(
   sujeito = as.numeric(c(1:20)),
   grupo = as.factor(c("ctrl", "trt")),
   tempo = as.factor(c("pos","Baseline")),
-  imc = as.numeric(c(runif(n = 20, min = 40, max = 80)))
+  vardep = as.numeric(c(runif(n = 20, min = 40, max = 80)))
 )
 
 data <- rbind(x,y)
+
+glimpse(data)
 
 skimr::skim(data)
 
 # Criando um csv para testar no SAS -----------------------------------------------------------
 
-write_excel_csv(x = data,file = "data.csv",col_names = FALSE,quote = "all")
+# write_excel_csv(x = data,file = "data.csv",col_names = FALSE,quote = "all")
 
 # Visualização exploratória -------------------------------------------------------------------
 
@@ -38,8 +41,8 @@ write_excel_csv(x = data,file = "data.csv",col_names = FALSE,quote = "all")
 
 data |>
   group_by(grupo, tempo) |>
-  summarise(mean = mean(imc),
-            DP = sd(imc))
+  summarise(mean = round(mean(vardep),digits = 2),
+            DP = round(sd(vardep),digits = 2))
 
 # obs -> igual ao proc means do SAS
 
@@ -47,49 +50,74 @@ data |>
 
 data |>
   ggplot(mapping = aes(x=grupo,
-                       y=imc)) +
+                       y=vardep)) +
   geom_boxplot(mapping = aes(fill = tempo),
                width=0.2,
                position = position_dodge(width=0.5)) +
   labs(title = "Indice de Massa corporal após período experimental",
-       x = "Grupo", y = "IMC (peso/estatura*2)")
+       x = "Grupo", y = "vardep")
 
 # Mixed model analyis -------------------------------------------------------------------------
 
-datalemr <- lmer(formula = imc ~ grupo*tempo + (1|sujeito),
+datalemr <- lmer(formula = vardep ~ grupo*tempo + (1|sujeito),
                  data = data,
-                 REML = FALSE)
+                 REML = TRUE)
 
-# Extraindo coeficientes
-
-coefs <- data.frame(coef(summary(datalemr)))
-
-# P-value baseado em uma distribuição normal
-
-coefs$p.value <- 2 * (1 - pnorm(abs(coefs$t.value)))
-
-round(coefs,digits = 8)
-
-# Coeficientes utilizando a função summary
+# resumo descritivo do modelo
 
 summary(datalemr)
+
+# Type 3 Tests of Fixed Effects
+
+anova(datalemr, ddf = "Kenward-Roger")
+
+# Obs. igual ao Type 3 Tests of Fixed Effects do SAS
 
 # Comparações multiplas -----------------------------------------------------------------------
 
 # Ajuste de Bonferroni
 
-emmeans::emmeans(datalemr,
+pairwise_bonferroni <- emmeans::emmeans(datalemr,
                  ddf = "Kenward_Roger",
                  specs = pairwise ~ grupo*tempo,
                  adjust = "Bonferroni")
 
-# obs. igual ao Differences of Least Squares Means so SAS
+pairwise_bonferroni
+
+# 95%CI
+
+confint_bonferroni <- confint(pairwise_bonferroni)
+
+CL_bonferroni <- data.frame(lower.CL = confint_bonferroni$contrasts$lower.CL,
+                 upper.CL = confint_bonferroni$contrasts$upper.CL)
+
+# tabela com comparações, EMD, SE, DF, t.ratio, P.value e 95%CI
+
+cbind(
+  list(pairwise_bonferroni)[[1]]$contrasts,
+  CL_bonferroni)
 
 # Ajuste de Tukey
 
-emmeans::emmeans(datalemr,
+pairwise_tukey <- emmeans::emmeans(datalemr,
                  ddf = "Kenward_Roger",
                  specs = pairwise ~ grupo*tempo,
                  adjust = "Tukey")
+
+# 95%CI
+
+confint_tukey <- confint(pairwise_tukey)
+
+CL <- data.frame(lower.CL = confint_tukey$contrasts$lower.CL,
+                 upper.CL = confint_tukey$contrasts$upper.CL)
+
+# tabela com comparações, EMD, SE, DF, t.ratio, P.value e 95%CI
+
+cbind(
+  list(pairwise_tukey)[[1]]$contrasts,
+  CL
+)
+
+# obs. resultado igual ao Differences of Least Squares Means so SAS
 
 
