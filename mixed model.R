@@ -5,6 +5,10 @@ library(lme4)
 library(lmerTest)
 library(emmeans)
 
+# Para não aparecer conotação cientifica
+
+options(scipen = 999)
+
 # Criando grupos ------------------------------------------------------------------------------
 
 set.seed(1234)
@@ -67,7 +71,7 @@ datalemr <- lmer(formula = vardep ~ grupo*tempo + (1|sujeito),
 
 summary(datalemr)
 
-# Type 3 Tests of Fixed Effects
+# 06 de agosto das 18 as 22h e 07 das 8h as 18h
 
 anova(datalemr, ddf = "Kenward-Roger")
 

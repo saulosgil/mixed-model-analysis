@@ -156,8 +156,8 @@ mtcars_com_outliers |>
                 y = "Consumo de combustível (milhas/galão)",
                 color = "")
 
-# AGORA SIM !!!
+# AGORA SIM, DADOS BONITINHOS S2 !!!
 
 
-
+# FONTE -> [Curso-R](https://blog.curso-r.com/posts/2021-04-15-como-encontrar-outliers/)
 
