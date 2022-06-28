@@ -5,7 +5,7 @@ library(lme4)
 library(lmerTest)
 library(emmeans)
 
-# Para não aparecer conotação cientifica
+# Para não aparecer notação cientifica
 
 options(scipen = 999)
 

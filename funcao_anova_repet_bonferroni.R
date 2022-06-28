@@ -6,7 +6,7 @@
 #   vardep;
 
 anova_bonferroni <- function(x){
-  # Para não aparecer conotação cientifica
+  # Para não aparecer notação cientifica
   options(scipen = 999)
 
   # Ajustando as colunas
